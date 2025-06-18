@@ -1,14 +1,18 @@
 import { useState, useEffect } from "react";
-import { askQuestion } from "./api/questions";
+import { askQuestion as askQuestionAPI } from "./api/questions";
 import QuestionForm from "./components/QuestionForm";
 import HistoryDrawer from "./components/HistoryDrawer";
 
+interface HistoryItem {
+  question: string;
+  answer: string;
+}
+
 function App() {
   const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [history, setHistory] = useState<string[]>([]);
+  const [history, setHistory] = useState<HistoryItem[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
@@ -20,11 +24,24 @@ function App() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-    setAnswer(null);
     try {
-      const res = await askQuestion(question);
-      setAnswer(res);
-      const newHistory = [question, ...history];
+      const systemPrompt = {
+        role: "system",
+        content: "Eres un asistente útil en programación.",
+      };
+      const messages = [
+        systemPrompt,
+        ...history
+          .slice()
+          .reverse()
+          .flatMap((item) => [
+            { role: "user", content: item.question },
+            { role: "assistant", content: item.answer },
+          ]),
+        { role: "user", content: question },
+      ];
+      const res = await askQuestionAPI(messages);
+      const newHistory = [{ question, answer: res }, ...history];
       setHistory(newHistory);
       localStorage.setItem("questionHistory", JSON.stringify(newHistory));
     } catch (err) {
@@ -43,10 +60,19 @@ function App() {
       />
       <div className="flex flex-1 items-center justify-center">
         <div className="flex flex-col gap-5 flex-1 items-center justify-center">
-          {answer ? (
-            <div className="flex flex-col justify-center w-full max-w-1/2 bg-white p-4 rounded shadow-md">
-              <h3 className="bold">Respuesta:</h3>
-              <p>{answer}</p>
+          {history.length > 0 ? (
+            <div className="flex flex-col w-full max-w-1/2 gap-3 mb-4">
+              {history
+                .slice()
+                .reverse()
+                .map((item, idx) => (
+                  <div key={idx} className="bg-white p-3 rounded shadow-md">
+                    <div className="font-semibold text-blue-700">
+                      Q: {item.question}
+                    </div>
+                    <div className="text-gray-800">A: {item.answer}</div>
+                  </div>
+                ))}
             </div>
           ) : (
             <h2 className="text-2xl font-bold">Tu profesor de programación</h2>

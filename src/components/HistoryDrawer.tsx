@@ -1,9 +1,14 @@
 import React from "react";
 
+interface HistoryItem {
+  question: string;
+  answer: string;
+}
+
 interface HistoryDrawerProps {
   open: boolean;
   onToggle: () => void;
-  history: string[];
+  history: HistoryItem[];
 }
 
 const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
@@ -67,13 +72,14 @@ const HistoryDrawer: React.FC<HistoryDrawerProps> = ({
             {history.length === 0 && (
               <p className="text-gray-400">Sin preguntas</p>
             )}
-            {history.map((q, i) => (
+            {history.map((item, i) => (
               <button
                 key={i}
                 className="w-full text-left hover:bg-gray-100 hover:cursor-pointer p-2 rounded hover:shadow transition-all duration-300"
                 onClick={() => onToggle()}
               >
-                {q}
+                <div className="font-semibold">Q: {item.question}</div>
+                <div className="text-gray-600">A: {item.answer}</div>
               </button>
             ))}
           </div>
