@@ -41,6 +41,21 @@ function App() {
         { role: "user", content: question },
       ];
       const res = await askQuestionAPI(messages);
+      const response = await fetch("http://localhost:3000/api/questions/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: res }],
+          tts: true,
+        }),
+      });
+
+      if (response.ok) {
+        const audioBlob = await response.blob();
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const audio = new Audio(audioUrl);
+        audio.play();
+      }
       const newHistory = [{ question, answer: res }, ...history];
       setHistory(newHistory);
       localStorage.setItem("questionHistory", JSON.stringify(newHistory));
