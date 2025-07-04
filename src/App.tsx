@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { askQuestion as askQuestionAPI } from "./api/questions";
 import QuestionForm from "./components/QuestionForm";
 import MessageHistory from "./components/MessageHistory";
 import { useLocalHistory } from "./hooks/useLocalHistory";
@@ -37,28 +36,34 @@ function App() {
           ]),
         { role: "user", content: question },
       ];
-      const res = await askQuestionAPI(messages);
 
       const response = await fetch("http://localhost:3000/api/questions/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [
-            { role: "user", content: messages[messages.length - 1].content },
-          ],
+          messages,
           tts: true,
         }),
       });
 
       if (response.ok) {
-        const audioBlob = await response.blob();
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const audio = new Audio(audioUrl);
-        audio.play();
+        const data = await response.json();
+        const { answer, audio } = data;
+        if (audio) {
+          const audioBlob = new Blob(
+            [Uint8Array.from(atob(audio), (c) => c.charCodeAt(0))],
+            { type: "audio/mpeg" }
+          );
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const audioObj = new Audio(audioUrl);
+          audioObj.play();
+        }
+        const newHistory = [{ question, answer }, ...history];
+        setHistory(newHistory);
+        setQuestion("");
+      } else {
+        setError("Error obteniendo respuesta del servidor");
       }
-      const newHistory = [{ question, answer: res }, ...history];
-      setHistory(newHistory);
-      setQuestion("");
     } catch (err) {
       setError((err as Error).message);
     } finally {
